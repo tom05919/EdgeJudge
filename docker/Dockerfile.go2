@@ -1,0 +1,61 @@
+# Go2 ROS 2 driver image (adapted from unofficial go2_ros2_sdk docker/).
+# Build from the EdgeJudge repo root (submodule must be initialized):
+#   docker build -f docker/Dockerfile.go2 -t edgejudge-go2:latest .
+
+FROM ros:humble-ros-base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    ROBOT_IP="" \
+    CONN_TYPE="webrtc" \
+    WEBRTC_SERVER_HOST="0.0.0.0" \
+    WEBRTC_SERVER_PORT="9991"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gnupg2 \
+    lsb-release \
+    python3-pip \
+    portaudio19-dev \
+    mesa-utils \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    software-properties-common \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-rviz2 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --no-cache-dir 'numpy<2.0.0'
+
+WORKDIR /ros2_ws
+# Single-src layout: packages live in unofficial_sdk_unitree_go_2/src/
+COPY unofficial_sdk_unitree_go_2/src/ /ros2_ws/src/
+
+RUN if [ -f /ros2_ws/src/requirements.txt ]; then \
+      pip3 install --no-cache-dir -r /ros2_ws/src/requirements.txt; \
+    fi
+
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && apt-get update \
+    && rosdep update \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Avoid setuptools>=80 breaking ament_python editable installs
+RUN pip3 install --no-cache-dir 'setuptools<80' 'packaging<25'
+
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && colcon build --packages-select go2_interfaces go2_robot_sdk
+
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc \
+    && echo "source /ros2_ws/install/setup.bash" >> /root/.bashrc \
+    && sed --in-place --expression \
+         '$isource "/ros2_ws/install/setup.bash"' \
+         /ros_entrypoint.sh
+
+COPY docker/entrypoint-go2.sh /usr/local/bin/edgejudge-go2-entrypoint.sh
+RUN chmod +x /usr/local/bin/edgejudge-go2-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/edgejudge-go2-entrypoint.sh"]
+CMD ["ros2", "launch", "go2_robot_sdk", "robot.launch.py", \
+     "nav2:=false", "slam:=false", "joystick:=false"]

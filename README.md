@@ -17,6 +17,7 @@ the three project trees side by side).
 | `goal_stop_judge/` | Orchestrator, stop judge, scan, ZMQ client, env manifests |
 | `omni-VLA/` | OmniVLA-edge and full OmniVLA inference |
 | `unofficial_sdk_unitree_go_2/` | Go2 ROS 2 driver (colcon root; packages under `src/`) |
+| `docker/` | Dockerfiles + Compose (build locally; no pre-built image in git) |
 
 Ignore `real_robot_SDKs/unitree_ros2/` and `Go2_Isaac_ros2/` unless you are
 working on simulation. `goal_stop_judge/VLM_implementation/` is experimental and
@@ -25,7 +26,8 @@ is **not** used by `go2_nav.py`.
 ## 2. Getting started
 
 Follow these steps in order on a machine that can reach the robot (and, for
-**remote** nav, a GPU host for the full model).
+**remote** nav, a GPU host for the full model). Prefer the native conda flow
+below; or use Docker ([docker/README.md](docker/README.md)).
 
 ### Step 1 — Clone the stack
 
@@ -106,7 +108,7 @@ More detail: [RUNNING_GO2_SDK.md](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md
 
 ### Step 5 — Every session: start the driver
 
-**Terminal 1** (`sim`):
+**Terminal 1** (`sim`), native:
 
 ```bash
 conda activate sim
@@ -115,6 +117,13 @@ source install/setup.bash
 export ROBOT_IP="192.168.x.x"   # your robot IP
 export CONN_TYPE="webrtc"
 ros2 launch go2_robot_sdk robot.launch.py nav2:=false slam:=false joystick:=false
+```
+
+Or via Docker (builds `edgejudge-go2` from `docker/Dockerfile.go2`):
+
+```bash
+export ROBOT_IP="192.168.x.x"
+docker compose -f docker/docker-compose.yml up --build go2_driver
 ```
 
 Keep `teleop:=true` (default) so `twist_mux` forwards `/cmd_vel` → `/cmd_vel_out`.
@@ -209,6 +218,7 @@ links on the EdgeJudge repo page).
 
 | Doc | Use |
 |-----|-----|
+| [docker/README.md](docker/README.md) | Build containers from Dockerfiles (not a shipped image) |
 | [VERSIONS.md](https://github.com/tom05919/VLM_goal_judge/blob/main/envs/VERSIONS.md) | SHAs, weights, clone pins |
 | [goal_stop_judge/envs/](https://github.com/tom05919/VLM_goal_judge/tree/main/envs) | `environment-*.yml`, install scripts |
 | [RUNNING_GO2_SDK.md](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md) | Colcon build / RoboStack SDK (tracked in this repo) |

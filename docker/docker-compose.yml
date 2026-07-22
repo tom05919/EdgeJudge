@@ -1,0 +1,55 @@
+# Compose file lives in docker/; build context is the EdgeJudge repo root.
+#
+# Driver only:
+#   export ROBOT_IP=192.168.x.x
+#   docker compose -f docker/docker-compose.yml up --build go2_driver
+#
+# Stack dev shell (GPU; mount repo; install conda envs yourself):
+#   docker compose -f docker/docker-compose.yml run --rm stack-dev
+
+services:
+  go2_driver:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.go2
+    image: edgejudge-go2:latest
+    environment:
+      ROBOT_IP: ${ROBOT_IP:?set ROBOT_IP to your Go2 address}
+      CONN_TYPE: ${CONN_TYPE:-webrtc}
+      WEBRTC_SERVER_HOST: "0.0.0.0"
+      WEBRTC_SERVER_PORT: ${WEBRTC_SERVER_PORT:-9991}
+      DISPLAY: ${DISPLAY:-}
+    network_mode: host
+    privileged: true
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+    devices:
+      - /dev/input:/dev/input
+    restart: unless-stopped
+
+  stack-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: edgejudge:dev
+    working_dir: /workspace
+    network_mode: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    environment:
+      GO2_CONDA_BASE: /opt/miniforge3
+      ROBOT_IP: ${ROBOT_IP:-}
+      CONN_TYPE: ${CONN_TYPE:-webrtc}
+      DISPLAY: ${DISPLAY:-}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics
+    volumes:
+      # Mount the EdgeJudge checkout so envs/weights persist on the host.
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+    gpus: all
+    command: ["bash"]
+    profiles: ["dev"]

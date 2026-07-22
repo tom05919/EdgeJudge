@@ -1,0 +1,21 @@
+# Keep image builds small: do not send weights, colcon artifacts, or git junk.
+.git
+**/omnivla-edge/
+**/omnivla-original/
+**/omnivla-finetuned-cast/
+**/omnivla-finetuned*/
+**/.git
+**/__pycache__/
+**/*.pyc
+unofficial_sdk_unitree_go_2/build/
+unofficial_sdk_unitree_go_2/install/
+unofficial_sdk_unitree_go_2/log/
+unofficial_sdk_unitree_go_2/tts_cache/
+goal_stop_judge/depth_implementation/UniDepth/
+goal_stop_judge/segmentation_implementation/Grounded-SAM-2/
+goal_stop_judge/.navigation_stop
+**/run_images/
+**/*.pt
+**/*.pth
+**/*.onnx
+**/*.safetensors
