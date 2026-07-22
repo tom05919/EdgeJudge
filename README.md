@@ -1,275 +1,217 @@
 # Go2 stop-judge + OmniVLA stack
 
-Canonical guide for running the real Go2 with a live stop judge and OmniVLA
-navigation. Everyday use is the interactive CLI:
+Run the Unitree Go2 with a live stop judge and OmniVLA navigation via one CLI:
 
 ```bash
 cd goal_stop_judge
 python go2_nav.py
 ```
 
-Isaac Sim notes and other folders under the outer `/workspace` tree are separate;
-this README is the stack entry point.
-
-## Clone this umbrella
-
-```bash
-git clone --recurse-submodules https://github.com/tom05919/EdgeJudge.git
-cd EdgeJudge
-# or after a plain clone:
-# git submodule update --init --recursive
-```
-
-Submodules are **pinned to exact commits** (see `.gitmodules` / `git submodule status`).
-Upstream `main`/`master` moving later does not change your tree until you bump the pins.
-
-Layout after clone: `goal_stop_judge/`, `omni-VLA/` (repo root), `unofficial_sdk_unitree_go_2/src/` (single `src/`).
-
-UniDepth, Grounded-SAM-2, and model weights are **not** EdgeJudge submodules — clone them
-separately per [`goal_stop_judge/envs/VERSIONS.md`](goal_stop_judge/envs/VERSIONS.md).
-
----
+This README is the stack entry point (EdgeJudge umbrella or a local checkout of
+the three project trees side by side).
 
 ## 1. Repo layout
-
-From the directory that holds the three project trees (this `workspace/` folder):
 
 | Path | Role |
 |------|------|
 | `goal_stop_judge/` | Orchestrator, stop judge, scan, ZMQ client, env manifests |
 | `omni-VLA/` | OmniVLA-edge and full OmniVLA inference |
-| `unofficial_sdk_unitree_go_2/` | Go2 ROS 2 driver (colcon workspace under `src/`) |
+| `unofficial_sdk_unitree_go_2/` | Go2 ROS 2 driver (colcon root; packages under `src/`) |
 
 Ignore `real_robot_SDKs/unitree_ros2/` and `Go2_Isaac_ros2/` unless you are
-working on simulation integration. `goal_stop_judge/VLM_implementation/` is
-experimental and is **not** used by `go2_nav.py` / `run_robot_stack.py`.
+working on simulation. `goal_stop_judge/VLM_implementation/` is experimental and
+is **not** used by `go2_nav.py`.
 
-Pinned SHAs, weight revisions, and clone commands live in
-[`goal_stop_judge/envs/VERSIONS.md`](goal_stop_judge/envs/VERSIONS.md).
+## 2. Getting started
 
-## 2. Architecture
+Follow these steps in order on a machine that can reach the robot (and, for
+**remote** nav, a GPU host for the full model).
 
-```mermaid
-flowchart TD
-  driver[Go2_SDK_robot.launch]
-  stack[go2_nav_or_run_robot_stack]
-  stop[stop_judge_scan_plus_live]
-  edge[run_omnivla_edge]
-  fullLocal[run_omnivla_mode_local]
-  remoteClient[server_client_ZMQ]
-  fullServe[run_omnivla_mode_serve]
-  center[center_target]
+### Step 1 — Clone the stack
 
-  driver -->|"/camera/image_raw"| stack
-  stack --> stop
-  stop -->|SCAN_DONE| edge
-  stop -->|SCAN_DONE| fullLocal
-  stop -->|SCAN_DONE| remoteClient
-  remoteClient --> fullServe
-  edge -->|"/cmd_vel"| driver
-  fullLocal -->|"/cmd_vel"| driver
-  remoteClient -->|"/cmd_vel"| driver
-  stop -->|".navigation_stop"| edge
-  stop -->|".navigation_stop"| fullLocal
-  stop -->|".navigation_stop"| remoteClient
-  edge -->|"after stop"| center
-  fullLocal -->|"after stop"| center
-  remoteClient -->|"after stop"| center
-```
-
-| Piece | Path | Conda env |
-|-------|------|-----------|
-| Go2 driver | `unofficial_sdk_unitree_go_2` | `sim` |
-| CLI / orchestrator | `goal_stop_judge/go2_nav.py` → `run_robot_stack` | any (spawns children) |
-| Perception + scan | `stop_judge.py` (`--scan-first --live`) | `perception` |
-| Nav **edge** | `run_omnivla_edge.py` | `sim` |
-| Nav **full local** | `run_omnivla.py --mode local` | `omnivla` |
-| Nav **full remote** | `server_client.py` ↔ `run_omnivla.py --mode serve` | `perception` ↔ `omnivla` |
-
-**ROS topics (real robot):**
-
-- Camera: `/camera/image_raw`
-- Stack publishes: `/cmd_vel` → `twist_mux` → `/cmd_vel_out` → driver → robot
-- Stop latch: `goal_stop_judge/.navigation_stop` (distance + optional center offset)
-
-**Three equal navigation choices** (wizard / `--nav`):
-
-1. **edge** — OmniVLA-edge on this PC (`sim`)
-2. **full** — full OmniVLA on this PC (`omnivla`, `--mode local`)
-3. **remote** — full OmniVLA via ZeroMQ (`perception` client ↔ `omnivla` serve)
-
-Remote is an optional deployment when the desktop GPU is too small — not “the only
-way to run full OmniVLA.”
-
-## 3. One-time setup
-
-### 3.1 Clone at pinned revisions
-
-Follow [`goal_stop_judge/envs/VERSIONS.md`](goal_stop_judge/envs/VERSIONS.md) for
-clone + checkout commands (stack, OmniVLA, Go2 SDK, UniDepth, Grounded-SAM-2,
-and Hugging Face weight trees).
-
-### 3.2 Create conda environments
-
-Manifests and installers live under **`goal_stop_judge/envs/`** (tracked with the
-stack repo). Override the conda root with `GO2_CONDA_BASE` if needed.
+Prefer the umbrella (pinned submodules):
 
 ```bash
-# Optional: export GO2_CONDA_BASE=/path/to/miniforge3
+git clone --recurse-submodules https://github.com/tom05919/EdgeJudge.git
+cd EdgeJudge
+```
+
+If you already cloned without submodules:
+
+```bash
+git submodule update --init --recursive
+```
+
+Or clone the three trees by hand using the commands in
+[VERSIONS.md](https://github.com/tom05919/VLM_goal_judge/blob/main/envs/VERSIONS.md).
+
+### Step 2 — Clone perception deps and model weights
+
+From the same directory that contains `goal_stop_judge/` and `omni-VLA/`:
+
+```bash
+# UniDepth + Grounded-SAM-2 (pinned SHAs — see VERSIONS.md)
+git clone https://github.com/lpiccinelli-eth/UniDepth.git \
+  goal_stop_judge/depth_implementation/UniDepth
+git -C goal_stop_judge/depth_implementation/UniDepth \
+  checkout 8d8cfe4c7ee15297099983607febf0d4f32eb3d6
+
+git clone https://github.com/IDEA-Research/Grounded-SAM-2.git \
+  goal_stop_judge/segmentation_implementation/Grounded-SAM-2
+git -C goal_stop_judge/segmentation_implementation/Grounded-SAM-2 \
+  checkout b7a9c29f196edff0eb54dbe14588d7ae5e3dde28
+
+# OmniVLA weights (edge is enough for --nav edge; add original for full/remote)
+git clone https://huggingface.co/NHirose/omnivla-edge omni-VLA/omnivla-edge
+git -C omni-VLA/omnivla-edge checkout b1361b7e24f101edea795a98b00a826b61a97394
+
+git clone https://huggingface.co/NHirose/omnivla-original omni-VLA/omnivla-original
+git -C omni-VLA/omnivla-original checkout e36a84d4923c041149d441f93f3bdb7092bb5f07
+```
+
+Also place the SAM2 checkpoint `sam2.1_hiera_small.pt` under
+`goal_stop_judge/segmentation_implementation/Grounded-SAM-2/checkpoints/`
+(see [VERSIONS.md](https://github.com/tom05919/VLM_goal_judge/blob/main/envs/VERSIONS.md)).
+
+### Step 3 — Create conda environments
+
+Needs [Miniforge/Mambaforge](https://github.com/conda-forge/miniforge). Optional:
+`export GO2_CONDA_BASE=/path/to/miniforge3`.
+
+```bash
 cd goal_stop_judge
 bash envs/install_sim_env.sh
 bash envs/install_perception_env.sh
 bash envs/install_omnivla_env.sh   # needed for --nav full or GPU-host serve
 ```
 
-| Env | Python | Used for |
-|-----|--------|----------|
-| `sim` | 3.11 | Go2 driver + OmniVLA-edge |
-| `perception` | 3.11 | Stop judge, scan, ZMQ client |
-| `omnivla` | 3.11 | Full OmniVLA local or serve |
+| Env | Used for |
+|-----|----------|
+| `sim` | Go2 driver + OmniVLA-edge |
+| `perception` | Stop judge, scan, remote ZMQ client |
+| `omnivla` | Full OmniVLA local or `--mode serve` |
 
-**Do not** mix packages across these envs. **Do not** source `/opt/ros` together
-with RoboStack — ROS comes only from the conda env.
+Do **not** mix packages across envs. Do **not** `source /opt/ros` with RoboStack.
 
-After RoboStack install, the scripts re-pin NumPy correctly per env
-(`perception` → 2.2.x, `omnivla` → 1.26.x). Re-run the matching `install_*_env.sh
---update` if you install extra ROS packages by hand.
-
-### 3.3 Weights and checkpoints
-
-See `envs/VERSIONS.md` for revisions. Typical needs:
-
-- Edge: `omni-VLA/omnivla-edge`
-- Full original (**current code default** in `InferenceConfig`):
-  `omnivla-original`, `resume_step=120000`
-- Full CAST (swap in `InferenceConfig`): `omnivla-finetuned-cast`,
-  `resume_step=210000`
-- SAM2: `sam2.1_hiera_small.pt` under Grounded-SAM-2 `checkpoints/`
-- HF caches: Grounding DINO + UniDepth (downloaded on first run)
-
-### 3.4 Build the Go2 SDK
+### Step 4 — Build the Go2 ROS 2 SDK
 
 ```bash
 conda activate sim
 cd unofficial_sdk_unitree_go_2
-colcon build --symlink-install
+rm -rf build install log
+colcon build --packages-select go2_interfaces go2_robot_sdk
 ```
 
-Details and traps: [`RUNNING_GO2_SDK.md`](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md).
+More detail: [RUNNING_GO2_SDK.md](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md).
 
-## 4. Every session (primary)
+### Step 5 — Every session: start the driver
 
-### Terminal 1 — Go2 driver (`sim`)
+**Terminal 1** (`sim`):
 
 ```bash
 conda activate sim
 cd unofficial_sdk_unitree_go_2
 source install/setup.bash
 export ROBOT_IP="192.168.x.x"   # your robot IP
+export CONN_TYPE="webrtc"
 ros2 launch go2_robot_sdk robot.launch.py nav2:=false slam:=false joystick:=false
 ```
 
 Keep `teleop:=true` (default) so `twist_mux` forwards `/cmd_vel` → `/cmd_vel_out`.
+Wait until the driver reports the robot ready (e.g. validated / standing).
 
-### Terminal 2 — stack wizard
+### Step 6 — Run the stack wizard
+
+**Terminal 2**:
 
 ```bash
 cd goal_stop_judge
 python go2_nav.py
 ```
 
-Answer the prompts: SAM2 detect string, OmniVLA language goal, navigation mode
-(`edge` / `full` / `remote`), platform (real Go2 / Isaac Sim). For **remote**,
-the wizard asks for the GPU host endpoint — use
-`tcp://<gpu-host-ip>:5555` (e.g. `tcp://195.251.89.102:5555`), not `localhost`
-unless the server is on the same machine.
+Answer the prompts:
 
-Flow: 360° scan + live stop judge → navigation → on stop, optional
-`center_target` in `sim`.
+1. SAM2 detect string (e.g. `Human.`)
+2. OmniVLA language goal (e.g. `go to the human with white shirt`)
+3. Navigation mode — start with **edge** on first bring-up
+4. Platform — **real** Go2 (or Isaac Sim)
 
-### Remote mode — GPU host first
+What happens next: 360° scan + live stop judge → navigation → optional centering
+after stop.
 
-The GPU desktop does **not** need `go2_nav`. Start the full OmniVLA ZeroMQ
-server from the OmniVLA tree (`omnivla` env):
+**Nav modes**
+
+| Mode | Where the model runs |
+|------|----------------------|
+| `edge` | This PC (`sim`) — recommended first |
+| `full` | This PC (`omnivla`) |
+| `remote` | GPU host via ZeroMQ (see below) |
+
+### Optional — remote full OmniVLA
+
+On the **GPU host** first (`omnivla` env; no `go2_nav` required):
 
 ```bash
 cd omni-VLA
 python inference/run_omnivla.py --mode serve --bind tcp://*:5555
-# --serve still works as a deprecated alias for --mode serve
 ```
 
-Bind `tcp://*:5555` on the GPU host. On the robot, point at that host’s IP
-(e.g. `tcp://195.251.89.102:5555`). The live language prompt is sent by the
-robot client on each ZeroMQ request.
+On the robot PC, choose **remote** in the wizard and set
+`tcp://<gpu-host-ip>:5555` (not `localhost` unless the server is local).
 
-Then on the robot PC, choose **remote** in the wizard (or
-`go2_nav.py run --nav remote --endpoint tcp://195.251.89.102:5555`).
-
-If this stack repo is also present on the GPU machine, `python go2_nav.py serve`
-is an optional wrapper around the same `run_omnivla.py --mode serve` call.
-
-## 5. Advanced / non-interactive
+## 3. Advanced / non-interactive
 
 ```bash
 cd goal_stop_judge
 
 python go2_nav.py run --sam "fire extinguisher." --vla "go to fire extinguisher" --nav edge
 python go2_nav.py run --sam "..." --vla "..." --nav full
-python go2_nav.py run --sam "..." --vla "..." --nav remote --endpoint tcp://195.251.89.102:5555
+python go2_nav.py run --sam "..." --vla "..." --nav remote \
+  --endpoint tcp://195.251.89.102:5555
 
-# Optional knobs (defaults are fine for normal use)
-python go2_nav.py run --nav edge --stop-distance 1.0 --min-interval 1.0 --cmd-vel-topic /cmd_vel
 python go2_nav.py run --nav edge --sim   # Isaac Sim topic names
 
-# Power-user path (same stack; --text-prompt is the SAM alias for --sam)
+# Same stack; --text-prompt is the SAM alias for --sam
 python run_robot_stack.py --navigation remote \
   --server-endpoint tcp://195.251.89.102:5555 --text-prompt "Human."
 ```
 
-Prefer `go2_nav.py` day-to-day. `run_robot_stack.py` is the library + slim flags;
-`--text-prompt` there is SAM (same as `--sam`); OmniVLA language is `--vla`.
-
-## 6. Config knobs
+## 4. Config knobs
 
 | Knob | Where | Notes |
 |------|--------|------|
-| SAM2 detect prompt | wizard / `--sam` (`run_robot_stack --text-prompt` alias) | Passed to stop judge as `--text-prompt` |
+| SAM2 detect prompt | wizard / `--sam` | Also `--text-prompt` on `run_robot_stack.py` |
 | OmniVLA language | wizard / `--vla` | Passed to edge / full / remote as `--text-prompt` |
 | `--stop-distance` | `go2_nav run` | Default 1.0 m |
 | `--min-interval` | `go2_nav run` | Min seconds between stop evaluations |
-| Velocity clamps | `server_client.py` | `MAX_LINEAR=0.3`, `MAX_ANGULAR=0.4` (remote path) |
-| Checkpoint / resume | `InferenceConfig` in `run_omnivla.py` | Default original/`120000`; CAST/`210000` optional — see VERSIONS.md |
-| Conda root | `GO2_CONDA_BASE` | Portable; no hardcoded `/root/miniforge3` |
-| Torch wheel index | `GO2_TORCH_INDEX_URL` | Override CUDA pip index in install scripts |
+| Velocity clamps | `server_client.py` | `MAX_LINEAR=0.3`, `MAX_ANGULAR=0.4` (remote) |
+| Checkpoint / resume | `InferenceConfig` in `run_omnivla.py` | Default original/`120000` |
+| Conda root | `GO2_CONDA_BASE` | Portable; no hardcoded miniforge path |
 
-There is no angular-sign-flip CLI flag. Hard stop: `Ctrl+C` on the driver and
-stack terminals (and Enter failsafe where the controller exposes it).
+Hard stop: `Ctrl+C` on the driver and stack terminals.
 
-## 7. Troubleshooting
+## 5. Troubleshooting
 
 | Symptom | What to try |
 |---------|-------------|
-| `go2_nav.py --help` fails importing ROS | Fixed in current tree (`center_target` is lazy-imported); CLI must not need `rclpy`. |
-| Stop judge never becomes ready / nav never starts | Models still loading, or child crashed. Stack waits for **`SCAN_DONE`** then starts OmniVLA while UniDepth loads. |
-| No camera / no motion | Driver up? `ros2 topic hz /camera/image_raw`; `twist_mux` running (`teleop:=true`); see REAL_ROBOT §9. |
-| Remote ZMQ timeouts / no frames on server | GPU host serving? Firewall open on 5555? Robot `--endpoint` must be `tcp://<gpu-host-ip>:5555`, not `localhost`/`HOST`. |
-| NumPy / ROS import fights | Re-run the env’s `install_*_env.sh --update`; never force one NumPy pin across all three envs. |
-| VRAM OOM on full local | Use `--nav edge`, or `--nav remote` with `run_omnivla.py --mode serve` on a larger GPU. |
-| Env recreate | `bash envs/install_<name>_env.sh --remove` then install again (needs disk for CUDA wheels). |
-| Mixing system ROS | Do not `source /opt/ros/...` in RoboStack shells. |
+| `go2_nav.py --help` needs ROS | Update stack; `center_target` must be lazy-imported |
+| Nav never starts | Wait for **`SCAN_DONE`**; check stop_judge logs for crashes |
+| No camera / no motion | Driver up? `ros2 topic hz /camera/image_raw`; `teleop:=true` |
+| Remote timeouts | Serve on GPU host; open port 5555; use real host IP in `--endpoint` |
+| NumPy / ROS fights | Re-run that env’s `install_*_env.sh --update` |
+| VRAM OOM on full local | Use `--nav edge`, or `--nav remote` on a larger GPU |
+| Env recreate | `bash envs/install_<name>_env.sh --remove` then install again |
 
-More driver / topic detail:
-[`REAL_ROBOT_GO2.md`](omni-VLA/REAL_ROBOT_GO2.md) (edge-era guide — prefer this README for the full stack),
-[`RUNNING_GO2_SDK.md`](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md),
-[`SETUP.md`](omni-VLA/SETUP.md) (upstream OmniVLA pins; stack installers supersede for this workspace).
+## 6. Further docs
 
-## 8. Pointers
+Links below point at the GitHub files (submodule paths do not resolve as relative
+links on the EdgeJudge repo page).
 
 | Doc | Use |
 |-----|-----|
-| [`goal_stop_judge/envs/VERSIONS.md`](goal_stop_judge/envs/VERSIONS.md) | SHAs, weights, env summary |
-| [`goal_stop_judge/envs/`](goal_stop_judge/envs/) | `environment-*.yml`, `requirements-*.txt`, `install_*_env.sh` |
-| [`omni-VLA/REAL_ROBOT_GO2.md`](omni-VLA/REAL_ROBOT_GO2.md) | Driver topics, launch flags, hardware traps |
-| [`unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md`](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md) | colcon build / RoboStack SDK |
-| [`omni-VLA/SETUP.md`](omni-VLA/SETUP.md) | Upstream full-model setup notes |
-| `goal_stop_judge/VLM_implementation/` | Experimental; out of scope for this stack |
+| [VERSIONS.md](https://github.com/tom05919/VLM_goal_judge/blob/main/envs/VERSIONS.md) | SHAs, weights, clone pins |
+| [goal_stop_judge/envs/](https://github.com/tom05919/VLM_goal_judge/tree/main/envs) | `environment-*.yml`, install scripts |
+| [RUNNING_GO2_SDK.md](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md) | Colcon build / RoboStack SDK (tracked in this repo) |
+| [REAL_ROBOT_GO2.md](https://github.com/tom05919/Omni-VLA_Go2/blob/main/REAL_ROBOT_GO2.md) | Driver topics, launch flags, hardware traps |
+| [SETUP.md](https://github.com/tom05919/Omni-VLA_Go2/blob/main/SETUP.md) | Upstream OmniVLA setup notes |
+| [VLM_implementation/](https://github.com/tom05919/VLM_goal_judge/tree/main/VLM_implementation) | Experimental; out of scope for this stack |
