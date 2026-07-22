@@ -1,0 +1,16 @@
+# Colcon artifacts (built under unofficial_sdk_unitree_go_2/src)
+unofficial_sdk_unitree_go_2/src/build/
+unofficial_sdk_unitree_go_2/src/install/
+unofficial_sdk_unitree_go_2/src/log/
+unofficial_sdk_unitree_go_2/tts_cache/
+
+# Python / editor junk
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+*.swp
+.env
+.venv/
