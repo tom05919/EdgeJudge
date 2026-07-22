@@ -23,6 +23,8 @@ cd EdgeJudge
 Submodules are **pinned to exact commits** (see `.gitmodules` / `git submodule status`).
 Upstream `main`/`master` moving later does not change your tree until you bump the pins.
 
+Layout after clone: `goal_stop_judge/`, `omni-VLA/` (repo root), `unofficial_sdk_unitree_go_2/src/` (single `src/`).
+
 UniDepth, Grounded-SAM-2, and model weights are **not** EdgeJudge submodules — clone them
 separately per [`goal_stop_judge/envs/VERSIONS.md`](goal_stop_judge/envs/VERSIONS.md).
 
@@ -35,7 +37,7 @@ From the directory that holds the three project trees (this `workspace/` folder)
 | Path | Role |
 |------|------|
 | `goal_stop_judge/` | Orchestrator, stop judge, scan, ZMQ client, env manifests |
-| `omni-VLA/OmniVLA/` | OmniVLA-edge and full OmniVLA inference |
+| `omni-VLA/` | OmniVLA-edge and full OmniVLA inference |
 | `unofficial_sdk_unitree_go_2/` | Go2 ROS 2 driver (colcon workspace under `src/`) |
 
 Ignore `real_robot_SDKs/unitree_ros2/` and `Go2_Isaac_ros2/` unless you are
@@ -137,7 +139,7 @@ After RoboStack install, the scripts re-pin NumPy correctly per env
 
 See `envs/VERSIONS.md` for revisions. Typical needs:
 
-- Edge: `omni-VLA/OmniVLA/omnivla-edge`
+- Edge: `omni-VLA/omnivla-edge`
 - Full original (**current code default** in `InferenceConfig`):
   `omnivla-original`, `resume_step=120000`
 - Full CAST (swap in `InferenceConfig`): `omnivla-finetuned-cast`,
@@ -149,7 +151,7 @@ See `envs/VERSIONS.md` for revisions. Typical needs:
 
 ```bash
 conda activate sim
-cd unofficial_sdk_unitree_go_2/src
+cd unofficial_sdk_unitree_go_2
 colcon build --symlink-install
 ```
 
@@ -161,7 +163,7 @@ Details and traps: [`RUNNING_GO2_SDK.md`](unofficial_sdk_unitree_go_2/RUNNING_GO
 
 ```bash
 conda activate sim
-cd unofficial_sdk_unitree_go_2/src
+cd unofficial_sdk_unitree_go_2
 source install/setup.bash
 export ROBOT_IP="192.168.x.x"   # your robot IP
 ros2 launch go2_robot_sdk robot.launch.py nav2:=false slam:=false joystick:=false
@@ -191,7 +193,7 @@ The GPU desktop does **not** need `go2_nav`. Start the full OmniVLA ZeroMQ
 server from the OmniVLA tree (`omnivla` env):
 
 ```bash
-cd omni-VLA/OmniVLA
+cd omni-VLA
 python inference/run_omnivla.py --mode serve --bind tcp://*:5555
 # --serve still works as a deprecated alias for --mode serve
 ```
@@ -257,9 +259,9 @@ stack terminals (and Enter failsafe where the controller exposes it).
 | Mixing system ROS | Do not `source /opt/ros/...` in RoboStack shells. |
 
 More driver / topic detail:
-[`REAL_ROBOT_GO2.md`](omni-VLA/OmniVLA/REAL_ROBOT_GO2.md) (edge-era guide — prefer this README for the full stack),
+[`REAL_ROBOT_GO2.md`](omni-VLA/REAL_ROBOT_GO2.md) (edge-era guide — prefer this README for the full stack),
 [`RUNNING_GO2_SDK.md`](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md),
-[`SETUP.md`](omni-VLA/OmniVLA/SETUP.md) (upstream OmniVLA pins; stack installers supersede for this workspace).
+[`SETUP.md`](omni-VLA/SETUP.md) (upstream OmniVLA pins; stack installers supersede for this workspace).
 
 ## 8. Pointers
 
@@ -267,7 +269,7 @@ More driver / topic detail:
 |-----|-----|
 | [`goal_stop_judge/envs/VERSIONS.md`](goal_stop_judge/envs/VERSIONS.md) | SHAs, weights, env summary |
 | [`goal_stop_judge/envs/`](goal_stop_judge/envs/) | `environment-*.yml`, `requirements-*.txt`, `install_*_env.sh` |
-| [`omni-VLA/OmniVLA/REAL_ROBOT_GO2.md`](omni-VLA/OmniVLA/REAL_ROBOT_GO2.md) | Driver topics, launch flags, hardware traps |
+| [`omni-VLA/REAL_ROBOT_GO2.md`](omni-VLA/REAL_ROBOT_GO2.md) | Driver topics, launch flags, hardware traps |
 | [`unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md`](unofficial_sdk_unitree_go_2/RUNNING_GO2_SDK.md) | colcon build / RoboStack SDK |
-| [`omni-VLA/OmniVLA/SETUP.md`](omni-VLA/OmniVLA/SETUP.md) | Upstream full-model setup notes |
+| [`omni-VLA/SETUP.md`](omni-VLA/SETUP.md) | Upstream full-model setup notes |
 | `goal_stop_judge/VLM_implementation/` | Experimental; out of scope for this stack |

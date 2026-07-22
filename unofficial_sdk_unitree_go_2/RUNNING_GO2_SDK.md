@@ -1,10 +1,10 @@
 # Running the Unitree Go2 ROS 2 SDK
 
-> **Full stop-judge + OmniVLA stack:** see [`../../README.md`](../../README.md)
+> **Full stop-judge + OmniVLA stack:** see [`../README.md`](../README.md)
 > (`python go2_nav.py`). Recreate the `sim` env with
 > `goal_stop_judge/envs/install_sim_env.sh` rather than ad-hoc packages.
 >
-> Canonical layout: colcon workspace at `unofficial_sdk_unitree_go_2/src`, then
+> Canonical layout: colcon workspace at `unofficial_sdk_unitree_go_2`, then
 > `source install/setup.bash` every shell. Set `ROBOT_IP` to **your** robot
 > address (examples in this file and in `REAL_ROBOT_GO2.md` may differ).
 
@@ -14,25 +14,26 @@ the way and how to fix them.
 
 ## 1. Environment overview
 
-- **Workspace root:** `unofficial_sdk_unitree_go_2/src`
+- **Workspace root:** `unofficial_sdk_unitree_go_2`
   (absolute path depends on where you cloned the workspace).
   - This is the **colcon workspace** (contains `build/`, `install/`, `log/`, `src/`).
-  - `src/` inside it holds the actual ROS packages (`go2_robot_sdk`, `go2_interfaces`, etc.).
+  - `src/` holds the actual ROS packages (`go2_robot_sdk`, `go2_interfaces`, etc.)
+    — typically a clone of [go2_ros2_sdk](https://github.com/abizovnuralem/go2_ros2_sdk).
 - **ROS distro:** Humble, provided via **RoboStack** (conda), not system `/opt/ros`.
 - **Conda env:** `sim` (resolve base with `GO2_CONDA_BASE` or `conda info --base`;
   do not hardcode `/root/miniforge3`).
 
 > Directory layout:
 > ```
-> unofficial_sdk_unitree_go_2/
-> └── src/                 <- colcon workspace root (run colcon here)
->     ├── build/
->     ├── install/
->     ├── log/
->     └── src/             <- ROS package sources
->         ├── go2_robot_sdk/
->         ├── go2_interfaces/
->         └── ...
+> unofficial_sdk_unitree_go_2/   <- colcon workspace root (run colcon here)
+> ├── RUNNING_GO2_SDK.md
+> ├── build/
+> ├── install/
+> ├── log/
+> └── src/                       <- ROS package sources (go2_ros2_sdk)
+>     ├── go2_robot_sdk/
+>     ├── go2_interfaces/
+>     └── ...
 > ```
 
 ## 2. One-time prerequisites
@@ -70,11 +71,12 @@ pip install "setuptools<80" "packaging<25"
 
 ## 3. Build the workspace
 
-Always build from the **workspace root** (`src`), never from `src/src`.
+Always build from the **colcon workspace root** (`unofficial_sdk_unitree_go_2`),
+not from inside `src/`.
 
 ```bash
 conda activate sim
-cd unofficial_sdk_unitree_go_2/src   # from your workspace root
+cd unofficial_sdk_unitree_go_2   # from your workspace root
 
 # Clean any stale build artifacts (important if the workspace was moved
 # or built on a different machine / conda path)
@@ -109,14 +111,14 @@ These are the problems encountered while bringing the SDK up, with fixes.
 
 ### A. `local_setup.sh: No such file or directory`
 
-**Cause:** sourcing the wrong path (e.g. an extra `src/`, like
-`.../src/src/install/local_setup.sh`). The package sources live in `src/src`,
-but `install/` is one level up.
+**Cause:** sourcing the wrong path (e.g. an extra nested `src/`). After the
+single-`src` layout, `install/` lives next to `src/` under
+`unofficial_sdk_unitree_go_2/`.
 
-**Fix:** source the setup script from the workspace root:
+**Fix:** source the setup script from the colcon workspace root:
 
 ```bash
-cd unofficial_sdk_unitree_go_2/src
+cd unofficial_sdk_unitree_go_2
 source install/setup.bash
 ```
 
@@ -144,7 +146,7 @@ not your built packages.
 **Fix:**
 
 ```bash
-source install/setup.bash   # from unofficial_sdk_unitree_go_2/src
+source install/setup.bash   # from unofficial_sdk_unitree_go_2
 ros2 pkg list | grep go2   # should list go2_robot_sdk, go2_interfaces
 ```
 
@@ -158,7 +160,7 @@ ros2 pkg list | grep go2   # should list go2_robot_sdk, go2_interfaces
 permissions):
 
 ```bash
-cd unofficial_sdk_unitree_go_2/src
+cd unofficial_sdk_unitree_go_2
 rm -rf build install log
 colcon build --packages-select go2_interfaces go2_robot_sdk
 source install/setup.bash
@@ -180,7 +182,7 @@ conda `ros2`.
 
 ```bash
 conda activate sim
-cd unofficial_sdk_unitree_go_2/src
+cd unofficial_sdk_unitree_go_2
 source install/setup.bash
 export ROBOT_IP="192.168.x.x"   # your robot IP
 export CONN_TYPE="webrtc"
@@ -189,12 +191,12 @@ ros2 launch go2_robot_sdk robot.launch.py
 
 ## Common gotchas checklist
 
-- [ ] Run `colcon build` from `src` (workspace root), **not** `src/src`.
+- [ ] Run `colcon build` from `unofficial_sdk_unitree_go_2` (colcon root), **not** from `src/`.
 - [ ] Use **mamba**, not `apt`, for ROS packages (RoboStack/conda environment).
 - [ ] Keep `setuptools < 80` so colcon can build Python packages.
 - [ ] `source install/setup.bash` in every new shell.
-- [ ] If you copied the workspace from another machine, `rm -rf build install log`
-      and rebuild so paths/shebangs are regenerated.
+- [ ] If you copied or moved the workspace, `rm -rf build install log` and rebuild
+      so paths/shebangs are regenerated.
 
 ## Known issues
 

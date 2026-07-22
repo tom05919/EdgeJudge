@@ -1,9 +1,9 @@
 [submodule "goal_stop_judge"]
 	path = goal_stop_judge
 	url = https://github.com/tom05919/VLM_goal_judge.git
-[submodule "omni-VLA/OmniVLA"]
-	path = omni-VLA/OmniVLA
+[submodule "omni-VLA"]
+	path = omni-VLA
 	url = https://github.com/tom05919/Omni-VLA_Go2.git
-[submodule "unofficial_sdk_unitree_go_2/src/src"]
-	path = unofficial_sdk_unitree_go_2/src/src
+[submodule "unofficial_sdk_unitree_go_2/src"]
+	path = unofficial_sdk_unitree_go_2/src
 	url = https://github.com/abizovnuralem/go2_ros2_sdk.git
