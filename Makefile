@@ -39,7 +39,7 @@ sdk:
 	$(BOOTSTRAP) --sdk
 
 weights:
-	$(WEIGHTS) --edge
+	$(WEIGHTS)
 
 weights-full:
 	$(WEIGHTS) --full

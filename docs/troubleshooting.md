@@ -7,7 +7,7 @@
 | `install_perception_env.sh` missing UniDepth / Grounded-SAM-2 | Same: `--code` clones those trees to the paths the install scripts expect |
 | `make weights` before `make setup` | `--code` first. Weights will refuse to mkdir `Grounded-SAM-2/` (that would block the git clone) |
 | `make smoke` asks for weights | `make weights` (Git LFS + SAM2 `.pt` + Grounding DINO/UniDepth snapshots) |
-| `FileNotFoundError` Grounding DINO / `local_files_only` | `make weights` prefetches `IDEA-Research/grounding-dino-base` and `lpiccinelli/unidepth-v2-vits14`. If you passed `--no-hf-cache`, run `huggingface-cli download` for those repos in the `perception` env |
+| `FileNotFoundError` Grounding DINO / `local_files_only` | `make weights` prefetches `IDEA-Research/grounding-dino-base` and `lpiccinelli/unidepth-v2-vits14` |
 | Docker build hangs / huge context | Ensure `.dockerignore` lists `omni-VLA/OmniVLA` (the layout shim is a self-symlink) |
 | Hugging Face clone is a few KB | `git lfs install` and re-run `make weights` |
 | `go2_nav.py --help` needs ROS | Update the `goal_stop_judge` submodule; `center_target` must be lazy-imported |

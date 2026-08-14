@@ -13,8 +13,4 @@ if [[ ! -f "${GO2_NAV}" ]]; then
   echo "Missing ${GO2_NAV}. Run: make setup" >&2
   exit 1
 fi
-
-if command -v python3 >/dev/null 2>&1; then
-  exec python3 "${GO2_NAV}" "$@"
-fi
-exec python "${GO2_NAV}" "$@"
+exec python3 "${GO2_NAV}" "$@"
