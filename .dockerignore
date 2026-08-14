@@ -1,5 +1,8 @@
 # Keep image builds small: do not send weights, colcon artifacts, or git junk.
 .git
+# Self-symlink created by scripts/bootstrap.sh --code. Docker follows
+# symlinks in the build context and would recurse forever without this.
+omni-VLA/OmniVLA
 **/omnivla-edge/
 **/omnivla-original/
 **/omnivla-finetuned-cast/

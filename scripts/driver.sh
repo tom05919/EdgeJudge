@@ -26,7 +26,7 @@ echo "[driver] ROBOT_IP=${ROBOT_IP} CONN_TYPE=${CONN_TYPE}"
 
 set +u
 conda activate sim
-set -u
+# ROS setup.bash references unset variables; keep nounset off.
 # shellcheck source=/dev/null
 source "${WS}/install/setup.bash"
 export ROBOT_IP CONN_TYPE

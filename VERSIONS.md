@@ -34,7 +34,7 @@ and `scripts/download_weights.sh` clone them to the paths above.
 
 | Path | URL | SHA |
 |------|-----|-----|
-| `goal_stop_judge` | https://github.com/tom05919/VLM_goal_judge.git | `7d37d008ae1c01db42c6f4e5bf792e9e4585af2f` |
+| `goal_stop_judge` | https://github.com/tom05919/VLM_goal_judge.git | `db45cc89fb7cbccab569675a0ea9518bdb4bea11` |
 | `omni-VLA` | https://github.com/tom05919/Omni-VLA_Go2.git | `80c1833c0616cbe2ff1f21f3065c573950daf1de` |
 | `unofficial_sdk_unitree_go_2/src` | https://github.com/abizovnuralem/go2_ros2_sdk.git | `4e186b5f89bfec1f32c85676cbe22d4958e4f0fa` |
 

@@ -5,7 +5,10 @@
 | `make setup` cannot find conda | Install Miniforge; `export GO2_CONDA_BASE=/path/to/miniforge3` or set it in `.env` |
 | `install_sim_env.sh` missing `omni-VLA/OmniVLA` | Run `make setup` / `./scripts/bootstrap.sh --code` (creates the shim symlink) |
 | `install_perception_env.sh` missing UniDepth / Grounded-SAM-2 | Same: `--code` clones those trees to the paths the install scripts expect |
+| `make weights` before `make setup` | `--code` first. Weights will refuse to mkdir `Grounded-SAM-2/` (that would block the git clone) |
 | `make smoke` asks for weights | `make weights` (Git LFS + SAM2 `.pt`) |
+| `FileNotFoundError` Grounding DINO / `local_files_only` | First-time Hugging Face cache: `huggingface-cli download IDEA-Research/grounding-dino-base` in the `perception` env (UniDepth similarly uses `lpiccinelli/unidepth-v2-vits14`) |
+| Docker build hangs / huge context | Ensure `.dockerignore` lists `omni-VLA/OmniVLA` (the layout shim is a self-symlink) |
 | Hugging Face clone is a few KB | `git lfs install` and re-run `make weights` |
 | `go2_nav.py --help` needs ROS | Update the `goal_stop_judge` submodule; `center_target` must be lazy-imported |
 | Nav never starts | Wait for **`SCAN_DONE`**; check stop_judge logs for crashes |
