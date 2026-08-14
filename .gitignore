@@ -4,6 +4,28 @@ unofficial_sdk_unitree_go_2/install/
 unofficial_sdk_unitree_go_2/log/
 unofficial_sdk_unitree_go_2/tts_cache/
 
+# Third-party checkouts (cloned by scripts/bootstrap.sh, not git submodules)
+goal_stop_judge/depth_implementation/UniDepth/
+goal_stop_judge/segmentation_implementation/Grounded-SAM-2/
+
+# Hugging Face weights (cloned by scripts/download_weights.sh)
+omni-VLA/omnivla-edge/
+omni-VLA/omnivla-original/
+omni-VLA/omnivla-finetuned-cast/
+omni-VLA/omnivla-finetuned*/
+
+# Shim so install_*_env.sh finds omni-VLA/OmniVLA (see scripts/bootstrap.sh)
+omni-VLA/OmniVLA
+
+# Smoke-test visualizations
+examples/smoke_output/
+
+# Stop-judge runtime files
+goal_stop_judge/.navigation_stop
+goal_stop_judge/.target_distance
+**/run_images/
+**/run_images2/
+
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -13,3 +35,7 @@ __pycache__/
 *.swp
 .env
 .venv/
+*.pt
+*.pth
+*.onnx
+*.safetensors
