@@ -25,7 +25,7 @@ git clone --recurse-submodules https://github.com/tom05919/EdgeJudge.git
 cd EdgeJudge
 cp .env.example .env
 make setup      # ./scripts/bootstrap.sh --all
-make weights    # OmniVLA-edge + SAM2
+make weights    # OmniVLA-edge + SAM2 + Grounding DINO/UniDepth caches
 make smoke
 ```
 
@@ -38,7 +38,7 @@ If you cloned without `--recurse-submodules`, `make setup` runs
 |--------|--------|----------------|
 | `make setup` | `scripts/bootstrap.sh --all` | Submodules, UniDepth, Grounded-SAM-2, `omni-VLA/OmniVLA` shim, `sim` + `perception` envs, colcon SDK |
 | `make setup-full` | `bootstrap.sh --all --full` | Also creates the `omnivla` env |
-| `make weights` | `download_weights.sh --edge` | `omni-VLA/omnivla-edge` + `sam2.1_hiera_small.pt` |
+| `make weights` | `download_weights.sh --edge` | `omni-VLA/omnivla-edge`, SAM2 `.pt`, Grounding DINO + UniDepth snapshots |
 | `make weights-full` | `download_weights.sh --full` | Also `omnivla-original` |
 | `make smoke` | `smoke_test.sh` | Offline `stop_judge.py` on `examples/sample.png` |
 | `make smoke-imports` | `smoke_test.sh --imports` | Env / `--help` only (no checkpoints) |
@@ -71,7 +71,10 @@ across envs. Recreate with
 or `install_*_env.sh --update` to refresh an existing env.
 
 `make setup` installs **sim + perception** only (enough for `--nav edge`).
-Full / remote need `make setup-full` and `make weights-full`.
+Full / remote need `make setup-full` and `make weights-full`. Running
+`make setup` again is a **no-op** if those conda envs already exist; refresh
+with `./scripts/bootstrap.sh --envs --update` or
+`bash goal_stop_judge/envs/install_<name>_env.sh --update`.
 
 The install scripts live in `goal_stop_judge/envs/` and are called by
 `scripts/bootstrap.sh`. Do not run them before `--code`: they require UniDepth,
@@ -101,13 +104,19 @@ and `scripts/nav.sh` source it.
 
 ## Hugging Face / Git LFS
 
-`make weights` clones `https://huggingface.co/NHirose/omnivla-edge`. If the
-directory is only a few kilobytes, Git LFS did not fetch the blobs:
+`make weights` clones `https://huggingface.co/NHirose/omnivla-edge` and fails
+if `omnivla-edge.pth` is missing or still a Git LFS pointer. If the directory
+is only a few kilobytes:
 
 ```bash
 git lfs install
 ./scripts/download_weights.sh --edge
 ```
+
+It also `snapshot_download`s `IDEA-Research/grounding-dino-base` and
+`lpiccinelli/unidepth-v2-vits14` into the Hugging Face cache. `stop_judge.py`
+loads both with `local_files_only=True`, so `make smoke` cannot succeed until
+those snapshots exist. Skip with `--no-hf-cache` only if you already have them.
 
 A Hugging Face token is usually not required for these public repos.
 
@@ -122,8 +131,9 @@ python goal_stop_judge/stop_judge.py \
   --output-dir examples/smoke_output
 ```
 
-If the SAM2 checkpoint is missing it exits with `Run: make weights` rather than
-a Hugging Face stack trace. The synthetic sample is documented in
+If the SAM2 checkpoint is missing, is a Git LFS pointer, or the Grounding DINO
+/ UniDepth caches are absent, it exits with `Run: make weights` rather than a
+transformers stack trace. The synthetic sample is documented in
 [examples/README.md](examples/README.md). Failures: [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Docker

@@ -59,7 +59,8 @@ These SHAs must match `.gitmodules` / `git submodule status`.
 HF clones land under `omni-VLA/omnivla-{edge,original,finetuned-cast}/`.
 The SAM2 file lands in `Grounded-SAM-2/checkpoints/`.
 
-Caches pulled on first run (not pinned as git SHAs):
+Hugging Face snapshots (`make weights` prefetches these; `stop_judge.py` uses
+`local_files_only=True`, so they are **not** downloaded on first smoke):
 
 - Grounding DINO: `IDEA-Research/grounding-dino-base`
 - UniDepth: `lpiccinelli/unidepth-v2-vits14`

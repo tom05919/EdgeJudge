@@ -14,7 +14,7 @@ help:
 	@echo "EdgeJudge"
 	@echo "  make setup          Init code deps, sim+perception envs, Go2 SDK"
 	@echo "  make setup-full     setup + full OmniVLA conda env"
-	@echo "  make weights        OmniVLA-edge + SAM2 checkpoint"
+	@echo "  make weights        OmniVLA-edge + SAM2 + HF perception caches"
 	@echo "  make weights-full   + omnivla-original"
 	@echo "  make smoke          Offline stop-judge on examples/sample.png"
 	@echo "  make driver         Native Go2 ROS 2 driver (needs ROBOT_IP in .env)"

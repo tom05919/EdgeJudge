@@ -3,7 +3,7 @@
 #
 #   ./scripts/smoke_test.sh           # imports + judge (needs make weights)
 #   ./scripts/smoke_test.sh --imports # env / --help only
-#   ./scripts/smoke_test.sh --edge    # also OmniVLA-edge --help in sim
+#   ./scripts/smoke_test.sh --edge    # also OmniVLA-edge import/--help in sim
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,6 +32,7 @@ SAMPLE="${REPO_ROOT}/examples/sample.png"
 OUT_DIR="${REPO_ROOT}/examples/smoke_output"
 STOP_JUDGE="${REPO_ROOT}/goal_stop_judge/stop_judge.py"
 EDGE_SCRIPT="${REPO_ROOT}/omni-VLA/inference/run_omnivla_edge.py"
+WEIGHTS_HINT="Run: make weights"
 
 edgejudge_init_conda
 
@@ -40,38 +41,39 @@ if ! edgejudge_conda_exists perception; then
   exit 1
 fi
 
-run_in_env() {
-  local env_name="$1"
-  shift
-  (
-    set +u
-    conda activate "${env_name}"
-    set -u
-    "$@"
-  )
-}
-
 echo "[smoke] perception: stop_judge.py --help"
-run_in_env perception python "${STOP_JUDGE}" --help >/dev/null
+edgejudge_in_conda_env perception python "${STOP_JUDGE}" --help >/dev/null
 
 echo "[smoke] perception: core imports"
-run_in_env perception python -c \
+edgejudge_in_conda_env perception python -c \
   "import numpy, torch, zmq, rclpy; from sensor_msgs.msg import Image; print('perception imports OK')"
 
 if [[ "${DO_JUDGE}" -eq 1 ]]; then
-  ckpt="$(edgejudge_sam2_ckpt_path)"
-  if [[ ! -f "${ckpt}" ]]; then
-    echo "Missing SAM2 checkpoint: ${ckpt}" >&2
-    echo "Run: make weights" >&2
+  edgejudge_require_blob "$(edgejudge_sam2_ckpt_path)" "${WEIGHTS_HINT}"
+  edgejudge_require_file "${SAMPLE}" "Missing bundled smoke image. See examples/README.md."
+
+  echo "[smoke] Hugging Face snapshots (Grounding DINO + UniDepth, local_files_only)"
+  if ! edgejudge_in_conda_env perception python -c "
+from huggingface_hub import snapshot_download
+import sys
+missing = []
+for repo in ('${GROUNDING_DINO_MODEL}', '${UNIDEPTH_HF_MODEL}'):
+    try:
+        snapshot_download(repo, local_files_only=True)
+    except Exception:
+        missing.append(repo)
+if missing:
+    print('Missing Hugging Face cache:', ', '.join(missing), file=sys.stderr)
+    print('Run: make weights   (or huggingface-cli download <repo> in the perception env)', file=sys.stderr)
+    sys.exit(1)
+print('HF cache OK')
+"; then
     exit 1
   fi
-  if [[ ! -f "${SAMPLE}" ]]; then
-    echo "Missing ${SAMPLE}" >&2
-    exit 1
-  fi
+
   mkdir -p "${OUT_DIR}"
   echo "[smoke] stop_judge on ${SAMPLE} (prompt=${SMOKE_SAM_PROMPT})"
-  run_in_env perception python "${STOP_JUDGE}" \
+  edgejudge_in_conda_env perception python "${STOP_JUDGE}" \
     --image "${SAMPLE}" \
     --text-prompt "${SMOKE_SAM_PROMPT}" \
     --output-dir "${OUT_DIR}"
@@ -87,8 +89,16 @@ if [[ "${DO_EDGE}" -eq 1 ]]; then
     echo "Missing ${EDGE_SCRIPT}. Run: make setup" >&2
     exit 1
   fi
-  echo "[smoke] sim: run_omnivla_edge.py --help"
-  run_in_env sim python "${EDGE_SCRIPT}" --help >/dev/null
+  # --help returns before load_model, so also require the cwd-relative weight file.
+  edgejudge_require_blob \
+    "${REPO_ROOT}/omni-VLA/omnivla-edge/omnivla-edge.pth" \
+    "${WEIGHTS_HINT} (run_omnivla_edge.py loads ./omnivla-edge/omnivla-edge.pth from omni-VLA/)."
+  echo "[smoke] sim: run_omnivla_edge.py --help (imports + argparse; does not load CUDA weights)"
+  edgejudge_in_conda_env sim bash -c '
+    set -euo pipefail
+    cd "$1"
+    python inference/run_omnivla_edge.py --help >/dev/null
+  ' bash "${REPO_ROOT}/omni-VLA"
 fi
 
 echo "[smoke] OK"

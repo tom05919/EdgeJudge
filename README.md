@@ -41,7 +41,7 @@ git clone --recurse-submodules https://github.com/tom05919/EdgeJudge.git
 cd EdgeJudge
 cp .env.example .env          # ROBOT_IP is only required for Track B
 make setup                    # code deps + sim + perception + SDK
-make weights                  # OmniVLA-edge + SAM2 checkpoint
+make weights                  # OmniVLA-edge + SAM2 + HF perception caches
 make smoke                    # stop_judge on examples/sample.png
 ```
 
