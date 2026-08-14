@@ -18,8 +18,9 @@ help:
 	@echo "  make weights-full   + omnivla-original"
 	@echo "  make smoke          Offline stop-judge on examples/sample.png"
 	@echo "  make driver         Native Go2 ROS 2 driver (needs ROBOT_IP in .env)"
-  @echo "  make nav            python go2_nav.py wizard (non-interactive: ./scripts/nav.sh run ...)"
+	@echo "  make nav            go2_nav.py wizard"
 	@echo "  make serve          Full OmniVLA ZeroMQ server (GPU host)"
+	@echo "Non-interactive nav: ./scripts/nav.sh run --nav edge --sam 'Human.'"
 	@echo "See SETUP.md and README.md."
 
 setup:

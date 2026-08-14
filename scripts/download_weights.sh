@@ -92,6 +92,13 @@ if [[ "${DO_CAST}" -eq 1 ]]; then
 fi
 
 if [[ "${DO_SAM2}" -eq 1 ]]; then
+  gsam_root="${REPO_ROOT}/goal_stop_judge/segmentation_implementation/Grounded-SAM-2"
+  if [[ ! -d "${gsam_root}/.git" ]]; then
+    echo "Grounded-SAM-2 is not cloned at ${gsam_root}" >&2
+    echo "Run: make setup   (or ./scripts/bootstrap.sh --code) before make weights." >&2
+    echo "Do not mkdir that path by hand — it blocks the pinned git clone." >&2
+    exit 1
+  fi
   local_ckpt="$(edgejudge_sam2_ckpt_path)"
   mkdir -p "$(dirname "${local_ckpt}")"
   if [[ -f "${local_ckpt}" && -s "${local_ckpt}" ]]; then

@@ -42,7 +42,7 @@ edgejudge_init_conda() {
     # shellcheck source=/dev/null
     source "${conda_lib}"
     _go2_clear_inherited_env
-    _go2_init_conda
+    _go2_init_conda || return 1
     return 0
   fi
 
@@ -89,8 +89,13 @@ edgejudge_clone_pinned() {
   fi
 
   if [[ -e "${dest}" && ! -d "${dest}/.git" ]]; then
-    echo "Refusing to clone over non-git path: ${dest}" >&2
-    return 1
+    if [[ -d "${dest}" && -z "$(ls -A "${dest}")" ]]; then
+      rmdir "${dest}"
+    else
+      echo "Refusing to clone over non-git path: ${dest}" >&2
+      echo "If this is a leftover from running make weights before make setup, remove it and re-run --code." >&2
+      return 1
+    fi
   fi
 
   echo "[pins] Cloning ${description}"
@@ -113,6 +118,11 @@ edgejudge_ensure_omnivla_shim() {
     return 0
   fi
   ln -sfn . "${shim}"
+  local probe="${shim}/inference/run_omnivla_edge.py"
+  if [[ ! -f "${probe}" ]]; then
+    echo "OmniVLA shim is broken: missing ${probe}" >&2
+    return 1
+  fi
   echo "[shim] omni-VLA/OmniVLA -> ."
 }
 

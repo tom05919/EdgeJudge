@@ -61,6 +61,13 @@ bootstrap_code() {
   echo "[bootstrap] Initializing git submodules"
   git -C "${REPO_ROOT}" submodule update --init --recursive
 
+  if [[ ! -f "${REPO_ROOT}/goal_stop_judge/go2_nav.py" || \
+        ! -f "${REPO_ROOT}/goal_stop_judge/envs/install_sim_env.sh" ]]; then
+    echo "goal_stop_judge checkout is missing go2_nav.py / envs/install_sim_env.sh." >&2
+    echo "Expected pin ${GOAL_STOP_JUDGE_SHA} (see VERSIONS.md)." >&2
+    exit 1
+  fi
+
   local unidepth="${REPO_ROOT}/goal_stop_judge/depth_implementation/UniDepth"
   local grounded="${REPO_ROOT}/goal_stop_judge/segmentation_implementation/Grounded-SAM-2"
 
@@ -105,7 +112,6 @@ bootstrap_sdk() {
   (
     set +u
     conda activate sim
-    set -u
     cd "${ws}"
     colcon build --packages-select go2_interfaces go2_robot_sdk
   )
