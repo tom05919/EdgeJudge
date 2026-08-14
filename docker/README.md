@@ -15,7 +15,8 @@ docker compose -f docker/docker-compose.yml up --build go2_driver
 | `docker/Dockerfile` → tag `edgejudge:dev` | `stack-dev` | CUDA + Miniforge shell for the full stack |
 
 Weights and the three conda envs are **not** baked into the build (too large).
-Use `stack-dev`, mount the repo, and run `goal_stop_judge/envs/install_*_env.sh`.
+Use `stack-dev`, mount the repo, and run `make setup` / `make weights` from
+the EdgeJudge root (see [SETUP.md](../SETUP.md)).
 
 ## Prerequisites
 
@@ -52,21 +53,18 @@ docker compose -f docker/docker-compose.yml --profile dev run --rm --build stack
 Inside the container:
 
 ```bash
-cd /workspace/goal_stop_judge
-bash envs/install_sim_env.sh
-bash envs/install_perception_env.sh
-bash envs/install_omnivla_env.sh   # if you need full / remote serve
-
-cd /workspace/unofficial_sdk_unitree_go_2
-# prefer host-built install, or rebuild:
-# colcon build --packages-select go2_interfaces go2_robot_sdk
-
-cd /workspace/goal_stop_judge
-python go2_nav.py
+cd /workspace
+make setup                 # or: make setup-full
+make weights
+make smoke                 # optional, no robot
+# Track B:
+# make driver              # or use the go2_driver Compose service instead
+make nav
 ```
 
 Clone UniDepth / Grounded-SAM-2 / HF weights on the **host** (or inside the
-mount) using the main README Getting Started steps so they persist.
+mount) via `make setup` / `make weights` so they persist. Do not bake them into
+the image.
 
 ## Files in this folder
 

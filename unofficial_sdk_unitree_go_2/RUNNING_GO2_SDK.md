@@ -1,8 +1,9 @@
 # Running the Unitree Go2 ROS 2 SDK
 
-> **Full stop-judge + OmniVLA stack:** see [`../README.md`](../README.md)
-> (`python go2_nav.py`). Recreate the `sim` env with
-> `goal_stop_judge/envs/install_sim_env.sh` rather than ad-hoc packages.
+> **Full stop-judge + OmniVLA stack:** [`../README.md`](../README.md) (quickstart)
+> and [`../docs/real_robot.md`](../docs/real_robot.md) (`make driver` / `make nav`).
+> Recreate the `sim` env with `make setup` (or
+> `goal_stop_judge/envs/install_sim_env.sh`) rather than ad-hoc packages.
 >
 > Canonical layout: colcon workspace at `unofficial_sdk_unitree_go_2`, then
 > `source install/setup.bash` every shell. Set `ROBOT_IP` to **your** robot
